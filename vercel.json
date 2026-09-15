@@ -1,24 +1,19 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "builds": [
+  "outputDirectory": "dist",
+  "rewrites": [
     {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
+      "source": "/api/(.*)",
+      "destination": "/server.js"
     },
     {
-      "src": "/health",
-      "dest": "/server.js"
+      "source": "/health",
+      "destination": "/server.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/server.js"
+      "source": "/((?!api/|health).*)",
+      "destination": "/index.html"
     }
   ]
 }
