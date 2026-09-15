@@ -8,11 +8,7 @@
   ],
   "routes": [
     {
-      "src": "/api/health",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/api/chat",
+      "src": "/api/(.*)",
       "dest": "/server.js"
     },
     {

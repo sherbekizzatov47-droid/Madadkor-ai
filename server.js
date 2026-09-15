@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { handleChatMessage } from './src/lib/legalAiEngine.js'
 
 dotenv.config()
@@ -8,10 +10,16 @@ dotenv.config()
 const app = express()
 const port = Number(process.env.PORT || 5000)
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 app.use(cors({ origin: true }))
 app.use(express.json({ limit: '2mb' }))
 
-// Noto'g'ri JSON request bo'lganda ishlaydigan middleware
+// Statik fayllarni (React build: dist yoki build papkasi) ulash
+app.use(express.static(path.join(__dirname, 'dist')))
+
+// JSON format xatolarini ushlab qoluvchi middleware
 app.use((err, _req, res, next) => {
   if (err instanceof SyntaxError && 'body' in err) {
     return res.status(400).json({ error: 'JSON so‘rov noto‘g‘ri.' })
@@ -19,17 +27,14 @@ app.use((err, _req, res, next) => {
   next(err)
 })
 
-// 1. Asosiy sahifa (GET /)
-app.get('/', (_req, res) => {
-  res.json({ message: 'Madadkor AI Server ishlamoqda!' })
-})
+// === API ENDPOINTLARI ===
 
-// 2. Oddiy health (GET /health)
+// GET /health
 app.get('/health', (_req, res) => {
   res.json({ ok: true, status: 'Server is healthy' })
 })
 
-// 3. API health (GET /api/health)
+// GET /api/health
 app.get('/api/health', (_req, res) => {
   const hasValidKey = Boolean(
     (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.startsWith('sk-')) ||
@@ -49,7 +54,7 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
-// 4. Brauzer orqali GET qilganda Cannot GET chiqmasligi uchun:
+// GET /api/chat
 app.get('/api/chat', (_req, res) => {
   res.status(405).json({
     error: 'Method Not Allowed',
@@ -57,7 +62,7 @@ app.get('/api/chat', (_req, res) => {
   })
 })
 
-// 5. Asosiy Chat API (POST /api/chat)
+// POST /api/chat
 app.post('/api/chat', async (req, res) => {
   try {
     const message = String(req.body?.message || '').trim()
@@ -90,12 +95,15 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
-// Local joyda test qilish uchun:
+// === REACT ROUTING (Asosiy / va barcha boshqa yo'llar uchun HTML qaytarish) ===
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+})
+
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
     console.log(`Madadkor AI server ishlayapti: http://localhost:${port}`)
   })
 }
 
-// Vercel Serverless uchun shart!
 export default app
