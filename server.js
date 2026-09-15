@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import path from 'path'
+import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { handleChatMessage } from './src/lib/legalAiEngine.js'
 
@@ -16,10 +17,15 @@ const __dirname = path.dirname(__filename)
 app.use(cors({ origin: true }))
 app.use(express.json({ limit: '2mb' }))
 
-// Statik fayllarni (React build: dist yoki build papkasi) ulash
-app.use(express.static(path.join(__dirname, 'dist')))
+// React build papkasini aniqlash (Vite bo'lsa 'dist', CRA bo'lsa 'build')
+const buildFolder = fs.existsSync(path.join(__dirname, 'dist')) ? 'dist' : 'build'
+const buildPath = path.join(__dirname, buildFolder)
 
-// JSON format xatolarini ushlab qoluvchi middleware
+// React statik fayllarini ulash
+if (fs.existsSync(buildPath)) {
+  app.use(express.static(buildPath))
+}
+
 app.use((err, _req, res, next) => {
   if (err instanceof SyntaxError && 'body' in err) {
     return res.status(400).json({ error: 'JSON so‘rov noto‘g‘ri.' })
@@ -29,12 +35,10 @@ app.use((err, _req, res, next) => {
 
 // === API ENDPOINTLARI ===
 
-// GET /health
 app.get('/health', (_req, res) => {
   res.json({ ok: true, status: 'Server is healthy' })
 })
 
-// GET /api/health
 app.get('/api/health', (_req, res) => {
   const hasValidKey = Boolean(
     (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.startsWith('sk-')) ||
@@ -54,7 +58,6 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
-// GET /api/chat
 app.get('/api/chat', (_req, res) => {
   res.status(405).json({
     error: 'Method Not Allowed',
@@ -62,7 +65,6 @@ app.get('/api/chat', (_req, res) => {
   })
 })
 
-// POST /api/chat
 app.post('/api/chat', async (req, res) => {
   try {
     const message = String(req.body?.message || '').trim()
@@ -95,9 +97,14 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
-// === REACT ROUTING (Asosiy / va barcha boshqa yo'llar uchun HTML qaytarish) ===
+// === REACT ROUTING (Asosiy sahifa va barcha router yo'llari uchun) ===
 app.get('*', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+  const indexPath = path.join(buildPath, 'index.html')
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath)
+  } else {
+    res.json({ message: 'Madadkor AI Server ishlamoqda! React build topilmadi.' })
+  }
 })
 
 if (process.env.NODE_ENV !== 'production') {
