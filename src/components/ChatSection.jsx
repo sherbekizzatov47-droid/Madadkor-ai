@@ -117,12 +117,17 @@ export default function ChatSection() {
     setCustomKey(saved)
     setActiveKey(saved)
 
+    // Xavfsiz health-check
     fetch('/api/health')
-      .then((r) => r.json())
-      .then((d) => setServerHealth(d))
-      .catch(() => {})
+      .then((r) => {
+        if (r.ok) return r.json()
+        return null
+      })
+      .then((d) => {
+        if (d) setServerHealth(d)
+      })
+      .catch(() => { })
   }, [])
-
   useEffect(() => {
     const onExternal = (event) => {
       const message = String(event.detail?.message || '').trim()
@@ -163,16 +168,19 @@ export default function ChatSection() {
           apiKey: activeKey || undefined,
         }),
       })
+
       const rawRes = await response.text()
       let data = {}
       try {
         data = rawRes ? JSON.parse(rawRes) : {}
       } catch {
-        throw new Error(`Serverdan kutilmagan javob keldi (${response.status}).`)
+        throw new Error(`Server xatoligi (${response.status} ${response.statusText})`)
       }
+
       if (!response.ok) {
-        throw new Error(data.error || `AI bilan bog‘lanib bo‘lmadi (${response.status}).`)
+        throw new Error(data.error || data.message || `Xatolik yuz berdi (${response.status})`)
       }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -231,11 +239,10 @@ export default function ChatSection() {
               <button
                 type="button"
                 onClick={() => setShowSettings(true)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
-                  isLiveAI
-                    ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20'
-                    : 'border-amber-400/30 bg-amber-400/10 text-amber-200 hover:bg-amber-400/20'
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${isLiveAI
+                  ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20'
+                  : 'border-amber-400/30 bg-amber-400/10 text-amber-200 hover:bg-amber-400/20'
+                  }`}
               >
                 <Zap className="h-3.5 w-3.5 text-amber-300" />
                 {isLiveAI ? 'Jonli AI Faol (Tezkor)' : 'API Kalit Ulash'}
@@ -260,11 +267,10 @@ export default function ChatSection() {
                       </div>
                     )}
                     <div
-                      className={`group relative max-w-[88%] rounded-2xl border px-4 py-3.5 text-sm leading-6 ${
-                        item.role === 'user'
-                          ? 'border-emerald-300/10 bg-emerald-300/10 text-emerald-50'
-                          : 'border-white/10 bg-white/[0.035] text-slate-200'
-                      } ${item.error ? 'border-rose-400/20 bg-rose-400/5 text-rose-200' : ''}`}
+                      className={`group relative max-w-[88%] rounded-2xl border px-4 py-3.5 text-sm leading-6 ${item.role === 'user'
+                        ? 'border-emerald-300/10 bg-emerald-300/10 text-emerald-50'
+                        : 'border-white/10 bg-white/[0.035] text-slate-200'
+                        } ${item.error ? 'border-rose-400/20 bg-rose-400/5 text-rose-200' : ''}`}
                     >
                       {renderFormattedMessage(item.content)}
 
