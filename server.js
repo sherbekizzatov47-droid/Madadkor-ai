@@ -18,6 +18,17 @@ app.use((err, _req, res, next) => {
   next(err)
 })
 
+// 1. Asosiy sahifa (Cannot GET / xatosini yo'qotadi)
+app.get('/', (_req, res) => {
+  res.json({ message: 'Madadkor AI Server ishlamoqda!' })
+})
+
+// 2. Oddiy /health yo'nalishi (agar /api/health sizga uzoq bo'lsa)
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, status: 'Server is healthy' })
+})
+
+// Siz yozgan /api/health
 app.get('/api/health', (_req, res) => {
   const hasValidKey = Boolean(
     (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.startsWith('sk-')) ||
@@ -69,6 +80,12 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
-app.listen(port, () => {
-  console.log(`Madadkor AI server ishlayapti: http://localhost:${port}`)
-})
+// Local joyda test qilish uchun:
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`Madadkor AI server ishlayapti: http://localhost:${port}`)
+  })
+}
+
+// Vercel uchun shart!
+export default app
