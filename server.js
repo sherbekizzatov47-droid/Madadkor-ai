@@ -6,9 +6,9 @@ import { handleChatMessage } from './src/lib/legalAiEngine.js'
 dotenv.config()
 
 const app = express()
-const port = Number(process.env.PORT || 5000)
 
-app.use(cors({ origin: true }))
+// Cors va JSON middleware
+app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '2mb' }))
 
 // Noto'g'ri JSON so'rovi uchun middleware
@@ -44,7 +44,7 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
-// Faqat POST so'rovi uchun endpoint (GET olib tashlandi, 405 berishi to'xtaydi)
+// CHAT POST ENDPOINT
 app.post('/api/chat', async (req, res) => {
   try {
     const message = String(req.body?.message || '').trim()
@@ -77,11 +77,18 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
-// Local joyda test qilish uchun:
-if (process.env.NODE_ENV !== 'production') {
+// Vercel uchun 404 Catch-All Handler (Not Allowed yoki Noto'g'ri routelarni tutish uchun)
+app.use((_req, res) => {
+  res.status(404).json({ error: 'So‘ralgan sahifa yoki metod topilmadi.' })
+})
+
+// Local rivojlantirish (Development) uchun listen
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  const port = Number(process.env.PORT || 5000)
   app.listen(port, () => {
     console.log(`Madadkor AI server ishlayapti: http://localhost:${port}`)
   })
 }
 
+// Vercel Serverless Function uchun eksport
 export default app
