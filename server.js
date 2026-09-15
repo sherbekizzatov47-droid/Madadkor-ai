@@ -11,6 +11,7 @@ const port = Number(process.env.PORT || 5000)
 app.use(cors({ origin: true }))
 app.use(express.json({ limit: '2mb' }))
 
+// Noto'g'ri JSON request bo'lganda ishlaydigan middleware
 app.use((err, _req, res, next) => {
   if (err instanceof SyntaxError && 'body' in err) {
     return res.status(400).json({ error: 'JSON so‘rov noto‘g‘ri.' })
@@ -18,17 +19,17 @@ app.use((err, _req, res, next) => {
   next(err)
 })
 
-// 1. Asosiy sahifa (Cannot GET / xatosini yo'qotadi)
+// 1. Asosiy sahifa (GET /)
 app.get('/', (_req, res) => {
   res.json({ message: 'Madadkor AI Server ishlamoqda!' })
 })
 
-// 2. Oddiy /health yo'nalishi (agar /api/health sizga uzoq bo'lsa)
+// 2. Oddiy health (GET /health)
 app.get('/health', (_req, res) => {
   res.json({ ok: true, status: 'Server is healthy' })
 })
 
-// Siz yozgan /api/health
+// 3. API health (GET /api/health)
 app.get('/api/health', (_req, res) => {
   const hasValidKey = Boolean(
     (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.startsWith('sk-')) ||
@@ -48,6 +49,15 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
+// 4. Brauzer orqali GET qilganda Cannot GET chiqmasligi uchun:
+app.get('/api/chat', (_req, res) => {
+  res.status(405).json({
+    error: 'Method Not Allowed',
+    message: 'Ushbu endpoint faqat POST so‘rovlarini qabul qiladi.'
+  })
+})
+
+// 5. Asosiy Chat API (POST /api/chat)
 app.post('/api/chat', async (req, res) => {
   try {
     const message = String(req.body?.message || '').trim()
@@ -87,5 +97,5 @@ if (process.env.NODE_ENV !== 'production') {
   })
 }
 
-// Vercel uchun shart!
+// Vercel Serverless uchun shart!
 export default app
